@@ -8,7 +8,7 @@ import (
 	"os"
 )
 
-const VERSION = "v1.0.0"
+const VERSION = "v1.0.1"
 
 func main() {
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {

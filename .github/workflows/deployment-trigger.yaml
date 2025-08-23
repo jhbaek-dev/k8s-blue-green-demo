@@ -53,6 +53,9 @@ jobs:
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
@@ -75,6 +78,7 @@ jobs:
         with:
           context: ./service-a
           file: ./service-a/Dockerfile
+          platforms: linux/amd64,linux/arm64
           push: true
           tags: ${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}/service-a:${{ steps.image-tag.outputs.tag }}
           cache-from: type=gha
@@ -86,6 +90,7 @@ jobs:
         with:
           context: ./service-b
           file: ./service-b/Dockerfile
+          platforms: linux/amd64,linux/arm64
           push: true
           tags: ${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}/service-b:${{ steps.image-tag.outputs.tag }}
           cache-from: type=gha
@@ -97,12 +102,13 @@ jobs:
         with:
           context: ./service-c
           file: ./service-c/Dockerfile
+          platforms: linux/amd64,linux/arm64
           push: true
           tags: ${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}/service-c:${{ steps.image-tag.outputs.tag }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
-      - name: Update qa_version.yaml
+      - name: Update qa_version.yaml and rollout files
         run: |
           # Install yq for YAML processing
           sudo wget -qO /usr/local/bin/yq https://github.com/mikefarah/yq/releases/latest/download/yq_linux_amd64
@@ -110,18 +116,27 @@ jobs:
           
           # Update image tags for changed services
           if [[ "${{ needs.detect-changes.outputs.service-a }}" == "true" ]]; then
+            # Update qa_version.yaml
             yq e '.applications.service-a.image = "${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}/service-a:${{ steps.image-tag.outputs.tag }}"' -i demo-gitops/qa_version.yaml
-            echo "Updated service-a image tag"
+            # Update rollout.yaml
+            yq e '.spec.template.spec.containers[0].image = "${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}/service-a:${{ steps.image-tag.outputs.tag }}"' -i demo-gitops/service-a/rollout.yaml
+            echo "Updated service-a image tag in qa_version.yaml and rollout.yaml"
           fi
           
           if [[ "${{ needs.detect-changes.outputs.service-b }}" == "true" ]]; then
+            # Update qa_version.yaml
             yq e '.applications.service-b.image = "${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}/service-b:${{ steps.image-tag.outputs.tag }}"' -i demo-gitops/qa_version.yaml
-            echo "Updated service-b image tag"
+            # Update rollout.yaml
+            yq e '.spec.template.spec.containers[0].image = "${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}/service-b:${{ steps.image-tag.outputs.tag }}"' -i demo-gitops/service-b/rollout.yaml
+            echo "Updated service-b image tag in qa_version.yaml and rollout.yaml"
           fi
           
           if [[ "${{ needs.detect-changes.outputs.service-c }}" == "true" ]]; then
+            # Update qa_version.yaml
             yq e '.applications.service-c.image = "${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}/service-c:${{ steps.image-tag.outputs.tag }}"' -i demo-gitops/qa_version.yaml
-            echo "Updated service-c image tag"
+            # Update rollout.yaml
+            yq e '.spec.template.spec.containers[0].image = "${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}/service-c:${{ steps.image-tag.outputs.tag }}"' -i demo-gitops/service-c/rollout.yaml
+            echo "Updated service-c image tag in qa_version.yaml and rollout.yaml"
           fi
 
       - name: Increment root-version based on changed services count
@@ -177,23 +192,47 @@ jobs:
           # Update root-version in qa_version.yaml
           yq e '.root-version = "'$NEW_VERSION'"' -i demo-gitops/qa_version.yaml
 
+      - name: Update root-version labels in all rollout files
+        run: |
+          # Get the updated root-version
+          UPDATED_ROOT_VERSION=$(yq e '.root-version' demo-gitops/qa_version.yaml)
+          echo "Updating all rollout files with root-version: $UPDATED_ROOT_VERSION"
+          
+          # Update root-version label in all service rollout files
+          yq e '.spec.template.metadata.labels.root-version = "'$UPDATED_ROOT_VERSION'"' -i demo-gitops/service-a/rollout.yaml
+          yq e '.spec.template.metadata.labels.root-version = "'$UPDATED_ROOT_VERSION'"' -i demo-gitops/service-b/rollout.yaml
+          yq e '.spec.template.metadata.labels.root-version = "'$UPDATED_ROOT_VERSION'"' -i demo-gitops/service-c/rollout.yaml
+          
+          echo "Updated root-version labels in all rollout files to: $UPDATED_ROOT_VERSION"
+
       - name: Commit and push changes
         run: |
           git config --local user.email "action@github.com"
           git config --local user.name "GitHub Action"
           
+          # Add all changed files
           git add demo-gitops/qa_version.yaml
+          # Always add all rollout files since root-version labels are always updated
+          git add demo-gitops/service-a/rollout.yaml
+          git add demo-gitops/service-b/rollout.yaml  
+          git add demo-gitops/service-c/rollout.yaml
           
           # Check if there are changes to commit
           if git diff --staged --quiet; then
             echo "No changes to commit"
           else
-            git commit -m "Update QA deployment versions
+            git commit -m "Update QA deployment versions and rollout manifests
             
             Changed services ($CHANGED_COUNT):
             $(if [[ "${{ needs.detect-changes.outputs.service-a }}" == "true" ]]; then echo "- service-a: ${{ steps.image-tag.outputs.tag }}"; fi)
             $(if [[ "${{ needs.detect-changes.outputs.service-b }}" == "true" ]]; then echo "- service-b: ${{ steps.image-tag.outputs.tag }}"; fi)
             $(if [[ "${{ needs.detect-changes.outputs.service-c }}" == "true" ]]; then echo "- service-c: ${{ steps.image-tag.outputs.tag }}"; fi)
+            
+            Files updated:
+            - demo-gitops/qa_version.yaml (root-version updated)
+            - demo-gitops/service-a/rollout.yaml (root-version label updated$(if [[ "${{ needs.detect-changes.outputs.service-a }}" == "true" ]]; then echo ", image updated"; fi))
+            - demo-gitops/service-b/rollout.yaml (root-version label updated$(if [[ "${{ needs.detect-changes.outputs.service-b }}" == "true" ]]; then echo ", image updated"; fi))
+            - demo-gitops/service-c/rollout.yaml (root-version label updated$(if [[ "${{ needs.detect-changes.outputs.service-c }}" == "true" ]]; then echo ", image updated"; fi))
             
             Version update: $(echo $CURRENT_VERSION) → $(yq e '.root-version' demo-gitops/qa_version.yaml)"
             

@@ -4,7 +4,7 @@ import (
 	"net"
 )
 
-const VERSION = "v1.1.0"
+const VERSION = "v1.1.1"
 
 func main() {
 	listener, _ := net.Listen("tcp", ":3000")
