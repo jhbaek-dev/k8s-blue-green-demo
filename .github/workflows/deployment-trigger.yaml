@@ -1,0 +1,206 @@
+name: Build and Deploy Services
+
+on:
+  push:
+    branches:
+      - master
+    paths:
+      - 'service-a/**'
+      - 'service-b/**'
+      - 'service-c/**'
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_PREFIX: ${{ github.repository }}
+
+jobs:
+  detect-changes:
+    runs-on: ubuntu-latest
+    outputs:
+      service-a: ${{ steps.changes.outputs.service-a }}
+      service-b: ${{ steps.changes.outputs.service-b }}
+      service-c: ${{ steps.changes.outputs.service-c }}
+      any-service: ${{ steps.changes.outputs.service-a == 'true' || steps.changes.outputs.service-b == 'true' || steps.changes.outputs.service-c == 'true' }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Check for changes
+        uses: dorny/paths-filter@v2
+        id: changes
+        with:
+          filters: |
+            service-a:
+              - 'service-a/**'
+            service-b:
+              - 'service-b/**'
+            service-c:
+              - 'service-c/**'
+
+  build-and-update:
+    needs: detect-changes
+    if: needs.detect-changes.outputs.any-service == 'true'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      packages: write
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Generate image tag
+        id: image-tag
+        run: |
+          SHORT_SHA=$(echo ${{ github.sha }} | cut -c1-7)
+          echo "tag=qa-${SHORT_SHA}-$(date +%Y%m%d-%H%M%S)" >> $GITHUB_OUTPUT
+
+      - name: Build and push service-a
+        if: needs.detect-changes.outputs.service-a == 'true'
+        uses: docker/build-push-action@v5
+        with:
+          context: ./service-a
+          file: ./service-a/Dockerfile
+          push: true
+          tags: ${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}/service-a:${{ steps.image-tag.outputs.tag }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Build and push service-b
+        if: needs.detect-changes.outputs.service-b == 'true'
+        uses: docker/build-push-action@v5
+        with:
+          context: ./service-b
+          file: ./service-b/Dockerfile
+          push: true
+          tags: ${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}/service-b:${{ steps.image-tag.outputs.tag }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Build and push service-c
+        if: needs.detect-changes.outputs.service-c == 'true'
+        uses: docker/build-push-action@v5
+        with:
+          context: ./service-c
+          file: ./service-c/Dockerfile
+          push: true
+          tags: ${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}/service-c:${{ steps.image-tag.outputs.tag }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Update qa_version.yaml
+        run: |
+          # Install yq for YAML processing
+          sudo wget -qO /usr/local/bin/yq https://github.com/mikefarah/yq/releases/latest/download/yq_linux_amd64
+          sudo chmod +x /usr/local/bin/yq
+          
+          # Update image tags for changed services
+          if [[ "${{ needs.detect-changes.outputs.service-a }}" == "true" ]]; then
+            yq e '.applications.service-a.image = "${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}/service-a:${{ steps.image-tag.outputs.tag }}"' -i demo-gitops/qa_version.yaml
+            echo "Updated service-a image tag"
+          fi
+          
+          if [[ "${{ needs.detect-changes.outputs.service-b }}" == "true" ]]; then
+            yq e '.applications.service-b.image = "${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}/service-b:${{ steps.image-tag.outputs.tag }}"' -i demo-gitops/qa_version.yaml
+            echo "Updated service-b image tag"
+          fi
+          
+          if [[ "${{ needs.detect-changes.outputs.service-c }}" == "true" ]]; then
+            yq e '.applications.service-c.image = "${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}/service-c:${{ steps.image-tag.outputs.tag }}"' -i demo-gitops/qa_version.yaml
+            echo "Updated service-c image tag"
+          fi
+
+      - name: Increment root-version based on changed services count
+        run: |
+          # Count changed services
+          CHANGED_COUNT=0
+          if [[ "${{ needs.detect-changes.outputs.service-a }}" == "true" ]]; then
+            CHANGED_COUNT=$((CHANGED_COUNT + 1))
+          fi
+          if [[ "${{ needs.detect-changes.outputs.service-b }}" == "true" ]]; then
+            CHANGED_COUNT=$((CHANGED_COUNT + 1))
+          fi
+          if [[ "${{ needs.detect-changes.outputs.service-c }}" == "true" ]]; then
+            CHANGED_COUNT=$((CHANGED_COUNT + 1))
+          fi
+          
+          echo "Number of changed services: $CHANGED_COUNT"
+          
+          # Get current root-version
+          CURRENT_VERSION=$(yq e '.root-version' demo-gitops/qa_version.yaml)
+          echo "Current version: $CURRENT_VERSION"
+          
+          # Extract version number
+          # Assumes format like v1.0.0_qa
+          BASE_VERSION=$(echo $CURRENT_VERSION | sed 's/_qa$//')
+          MAJOR=$(echo $BASE_VERSION | sed 's/v//' | cut -d. -f1)
+          MINOR=$(echo $BASE_VERSION | cut -d. -f2)
+          PATCH=$(echo $BASE_VERSION | cut -d. -f3)
+          
+          # Increment version based on changed services count
+          if [[ $CHANGED_COUNT -eq 1 ]]; then
+            # 1 service changed: patch update
+            NEW_PATCH=$((PATCH + 1))
+            NEW_VERSION="v${MAJOR}.${MINOR}.${NEW_PATCH}_qa"
+            echo "Patch version increment: $NEW_VERSION"
+          elif [[ $CHANGED_COUNT -eq 2 ]]; then
+            # 2 services changed: minor update
+            NEW_MINOR=$((MINOR + 1))
+            NEW_VERSION="v${MAJOR}.${NEW_MINOR}.0_qa"
+            echo "Minor version increment: $NEW_VERSION"
+          elif [[ $CHANGED_COUNT -eq 3 ]]; then
+            # 3 services changed: major update
+            NEW_MAJOR=$((MAJOR + 1))
+            NEW_VERSION="v${NEW_MAJOR}.0.0_qa"
+            echo "Major version increment: $NEW_VERSION"
+          else
+            echo "Unexpected number of changed services: $CHANGED_COUNT"
+            exit 1
+          fi
+          
+          echo "New version: $NEW_VERSION"
+          
+          # Update root-version in qa_version.yaml
+          yq e '.root-version = "'$NEW_VERSION'"' -i demo-gitops/qa_version.yaml
+
+      - name: Commit and push changes
+        run: |
+          git config --local user.email "action@github.com"
+          git config --local user.name "GitHub Action"
+          
+          git add demo-gitops/qa_version.yaml
+          
+          # Check if there are changes to commit
+          if git diff --staged --quiet; then
+            echo "No changes to commit"
+          else
+            git commit -m "Update QA deployment versions
+            
+            Changed services ($CHANGED_COUNT):
+            $(if [[ "${{ needs.detect-changes.outputs.service-a }}" == "true" ]]; then echo "- service-a: ${{ steps.image-tag.outputs.tag }}"; fi)
+            $(if [[ "${{ needs.detect-changes.outputs.service-b }}" == "true" ]]; then echo "- service-b: ${{ steps.image-tag.outputs.tag }}"; fi)
+            $(if [[ "${{ needs.detect-changes.outputs.service-c }}" == "true" ]]; then echo "- service-c: ${{ steps.image-tag.outputs.tag }}"; fi)
+            
+            Version update: $(echo $CURRENT_VERSION) → $(yq e '.root-version' demo-gitops/qa_version.yaml)"
+            
+            git push
+          fi
+
+      - name: Display updated qa_version.yaml
+        run: |
+          echo "Updated qa_version.yaml contents:"
+          cat demo-gitops/qa_version.yaml

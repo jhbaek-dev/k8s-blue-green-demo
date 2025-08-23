@@ -1,0 +1,23 @@
+version: '3.8'
+
+services:
+  service-a:
+    build: ../service-a
+    ports:
+      - "3000:3000"
+    environment:
+      - SERVICE_B_HOST=service-b
+      - SERVICE_C_HOST=service-c
+    depends_on:
+      - service-b
+      - service-c
+
+  service-b:
+    build: ../service-b
+    expose:
+      - "3000"
+
+  service-c:
+    build: ../service-c
+    expose:
+      - "3000"

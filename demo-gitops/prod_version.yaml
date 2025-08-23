@@ -1,0 +1,8 @@
+root-version: v1.0.0
+applications:
+  service-a:
+    image: REPLACE_IMAGE_TAG
+  service-b:
+    image: REPLACE_IMAGE_TAG
+  service-c:
+    image: REPLACE_IMAGE_TAG

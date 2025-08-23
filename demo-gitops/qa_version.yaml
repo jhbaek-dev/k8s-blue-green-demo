@@ -1,0 +1,8 @@
+root-version: v1.0.0_qa
+applications:
+  service-a:
+    image: REPLACE_IMAGE
+  service-b:
+    image: REPLACE_IMAGE
+  service-c:
+    image: REPLACE_IMAGE
