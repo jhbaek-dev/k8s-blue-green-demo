@@ -67,15 +67,20 @@ jobs:
     
     - name: Update all services rollouts and virtual services
       run: |
-        # Loop through all services
+        # Loop through all services and get their images directly
         for service in service-a service-b service-c; do
           echo "Updating $service..."
           
-          # Get service image from environment variable
-          service_var=$(echo "$service" | tr '-' '_' | tr '[:lower:]' '[:upper:]')_IMAGE
-          service_image=$(eval echo \$service_var)
+          # Get service image directly from qa_version.yaml
+          service_image=$(yq e ".applications.$service.image" demo-gitops/qa_version.yaml)
           
           echo "  Image: $service_image"
+          
+          # Validate that we got an image
+          if [ -z "$service_image" ] || [ "$service_image" = "null" ]; then
+            echo "  ❌ Failed to get image for $service"
+            exit 1
+          fi
           
           # Update container image in rollout
           yq e '.spec.template.spec.containers[0].image = "'"$service_image"'"' -i demo-gitops/$service/rollout.yaml
@@ -95,6 +100,8 @@ jobs:
           else
             echo "  No virtual service found for $service (this is normal for some services)"
           fi
+          
+          echo "  ✅ $service updated successfully"
         done
     
     - name: Show changes summary
