@@ -16,7 +16,6 @@ func main() {
 		serviceBHost := os.Getenv("SERVICE_B_HOST")
 		serviceCHost := os.Getenv("SERVICE_C_HOST")
 		
-		// HTTP 요청으로 service-b 버전 조회
 		serviceBVersion := "unknown"
 		if serviceBHost != "" {
 			resp, err := http.Get("http://" + serviceBHost + ":3000/version")
@@ -27,7 +26,6 @@ func main() {
 			}
 		}
 		
-		// TCP 요청으로 service-c 버전 조회
 		serviceCVersion := "unknown"
 		if serviceCHost != "" {
 			conn, err := net.Dial("tcp", serviceCHost+":3000")
