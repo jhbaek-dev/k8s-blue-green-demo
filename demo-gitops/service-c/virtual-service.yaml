@@ -6,7 +6,7 @@ metadata:
 spec:
   hosts:
     - service-c
-  tcp:
+  http:
     - match:
         - sourceLabels:
             root-version: "v2.1.1"
