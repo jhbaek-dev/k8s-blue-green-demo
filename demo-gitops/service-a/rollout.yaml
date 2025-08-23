@@ -14,11 +14,11 @@ spec:
     metadata:
       labels:
         app: service-a
-        root-version: v2.1.0_qa
+        root-version: v2.1.1
     spec:
       containers:
         - name: service-a
-          image: ghcr.io/jhbaek-dev/k8s-blue-green-demo/service-a:qa-6f1ec00-20250823-021148
+          image: SERVICE_A_IMAGE
           imagePullPolicy: Always
           ports:
             - name: http

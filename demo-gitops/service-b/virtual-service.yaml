@@ -5,18 +5,18 @@ metadata:
   namespace: default
 spec:
   hosts:
-  - service-b
+    - service-b
   http:
-  - match:
-    - sourceLabels:
-        root-version: "SHOULD_BE_REPLACED"
-    route:
-    - destination:
-        host: service-b-preview
-        port:
-          number: 3000
-  - route:
-    - destination:
-        host: service-b
-        port:
-          number: 3000
+    - match:
+        - sourceLabels:
+            root-version: "v2.1.1"
+      route:
+        - destination:
+            host: service-b-preview
+            port:
+              number: 3000
+    - route:
+        - destination:
+            host: service-b
+            port:
+              number: 3000

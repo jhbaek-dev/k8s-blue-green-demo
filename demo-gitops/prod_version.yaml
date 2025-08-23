@@ -1,8 +1,8 @@
-root-version: v1.0.0
+root-version: v2.1.1
 applications:
   service-a:
-    image: REPLACE_IMAGE_TAG
+    image: ghcr.io/jhbaek-dev/k8s-blue-green-demo/service-a:qa-0b236ff-20250823-044846
   service-b:
-    image: REPLACE_IMAGE_TAG
+    image: ghcr.io/jhbaek-dev/k8s-blue-green-demo/service-b:qa-c2900de-20250823-033003
   service-c:
-    image: REPLACE_IMAGE_TAG
+    image: ghcr.io/jhbaek-dev/k8s-blue-green-demo/service-c:qa-c2900de-20250823-033003
