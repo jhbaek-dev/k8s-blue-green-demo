@@ -1,0 +1,36 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Rollout
+metadata:
+  name: service-a
+  labels:
+    app: service-a
+spec:
+  replicas: 1
+  revisionHistoryLimit: 2
+  selector:
+    matchLabels:
+      app: service-a
+  template:
+    metadata:
+      labels:
+        app: service-a
+        root-version: v1.0.0
+    spec:
+      containers:
+      - name: service-a
+        image: ghcr.io/jhbaek-dev/k8s-blue-green-demo/service-a:qa-ca4455a-20250823-012516
+        imagePullPolicy: Always
+        ports:
+        - name: http
+          containerPort: 3000
+          protocol: TCP
+        env:
+          - name: SERVICE_B_HOST
+            value: service-b
+          - name: SERVICE_C_HOST
+            value: service-c
+  strategy:
+    blueGreen:
+      autoPromotionEnabled: false
+      activeService: service-a
+      previewService: service-a-preview

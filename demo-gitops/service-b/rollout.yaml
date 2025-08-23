@@ -1,0 +1,31 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Rollout
+metadata:
+  name: service-b
+  labels:
+    app: service-b
+spec:
+  replicas: 1
+  revisionHistoryLimit: 2
+  selector:
+    matchLabels:
+      app: service-b
+  template:
+    metadata:
+      labels:
+        app: service-b
+        root-version: v1.0.0
+    spec:
+      containers:
+      - name: service-b
+        image: ghcr.io/jhbaek-dev/k8s-blue-green-demo/service-b:qa-7c745ab-20250823-012754
+        imagePullPolicy: Always
+        ports:
+        - name: http
+          containerPort: 3000
+          protocol: TCP
+  strategy:
+    blueGreen:
+      autoPromotionEnabled: false
+      activeService: service-b
+      previewService: service-b-preview
