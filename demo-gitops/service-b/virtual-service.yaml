@@ -1,0 +1,22 @@
+apiVersion: networking.istio.io/v1beta1
+kind: VirtualService
+metadata:
+  name: service-b-routing
+  namespace: default
+spec:
+  hosts:
+  - service-b
+  http:
+  - match:
+    - sourceLabels:
+        root-version: "SHOULD_BE_REPLACED"
+    route:
+    - destination:
+        host: service-b-preview
+        port:
+          number: 3000
+  - route:
+    - destination:
+        host: service-b
+        port:
+          number: 3000

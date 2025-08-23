@@ -8,11 +8,12 @@ import (
 	"os"
 )
 
-const VERSION = "v1.0.1"
+const VERSION = "v1.0.2"
 
 func main() {
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "text/html")
+		rootVersion := os.Getenv("ROOT_VERSION")
 		serviceBHost := os.Getenv("SERVICE_B_HOST")
 		serviceCHost := os.Getenv("SERVICE_C_HOST")
 		
@@ -38,8 +39,8 @@ func main() {
 			}
 		}
 		
-		fmt.Fprintf(w, "Service-A Version: %s<br>Service-B Version: %s<br>Service-C Version: %s", 
-			VERSION, serviceBVersion, serviceCVersion)
+		fmt.Fprintf(w, "Service-A Version: %s<br>Service-B Version: %s<br>Service-C Version: %s<br>Root Version: %s", 
+			VERSION, serviceBVersion, serviceCVersion, rootVersion)
 	})
 	
 	http.ListenAndServe(":3000", nil)
