@@ -1,8 +1,8 @@
-root-version: v1.0.1_qa
+root-version: v1.1.0_qa
 applications:
   service-a:
     image: ghcr.io/jhbaek-dev/k8s-blue-green-demo/service-a:qa-ca4455a-20250823-012516
   service-b:
-    image: REPLACE_IMAGE
+    image: ghcr.io/jhbaek-dev/k8s-blue-green-demo/service-b:qa-7c745ab-20250823-012754
   service-c:
-    image: REPLACE_IMAGE
+    image: ghcr.io/jhbaek-dev/k8s-blue-green-demo/service-c:qa-7c745ab-20250823-012754
