@@ -11,6 +11,9 @@ on:
 jobs:
   deploy-to-production:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      packages: write
     
     steps:
     - name: Validate confirmation
@@ -26,7 +29,9 @@ jobs:
         fetch-depth: 0
     
     - name: Setup yq
-      uses: mikefarah/yq@master
+      run: |
+        sudo wget -qO /usr/local/bin/yq https://github.com/mikefarah/yq/releases/latest/download/yq_linux_amd64
+        sudo chmod +x /usr/local/bin/yq
     
     - name: Read QA version and prepare production deployment
       run: |
@@ -107,18 +112,27 @@ jobs:
       run: |
         git config --local user.email "action@github.com"
         git config --local user.name "GitHub Action"
-        git add demo-gitops/
-        git commit -m "🚀 Deploy to production: $PROD_ROOT_VERSION
-
-        - Updated prod_version.yaml with root-version: $PROD_ROOT_VERSION
-        - Updated all service rollouts with new images and labels
-        - Updated virtual services with new root-version labels
         
-        Images deployed:
-        - service-a: $SERVICE_A_IMAGE
-        - service-b: $SERVICE_B_IMAGE  
-        - service-c: $SERVICE_C_IMAGE"
-        git push
+        # Add all changed files
+        git add demo-gitops/
+        
+        # Check if there are changes to commit
+        if git diff --staged --quiet; then
+          echo "No changes to commit"
+        else
+          git commit -m "🚀 Deploy to production: $PROD_ROOT_VERSION
+
+          - Updated prod_version.yaml with root-version: $PROD_ROOT_VERSION
+          - Updated all service rollouts with new images and labels
+          - Updated virtual services with new root-version labels
+          
+          Images deployed:
+          - service-a: $SERVICE_A_IMAGE
+          - service-b: $SERVICE_B_IMAGE  
+          - service-c: $SERVICE_C_IMAGE"
+          
+          git push
+        fi
     
     - name: Create deployment summary
       run: |
