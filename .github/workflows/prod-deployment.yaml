@@ -81,12 +81,19 @@ jobs:
           yq e '.spec.template.spec.containers[0].image = "'"$service_image"'"' -i demo-gitops/$service/rollout.yaml
           
           # Update pod label root-version in rollout
-          yq e '.spec.template.metadata.labels.root-version = env(PROD_ROOT_VERSION)' -i demo-gitops/$service/rollout.yaml
+          yq e '.spec.template.metadata.labels.root-version = "'"$PROD_ROOT_VERSION"'"' -i demo-gitops/$service/rollout.yaml
           
-          # Check if virtual-service.yaml exists and update it
-          if [ -f "demo-gitops/$service/virtual-service.yaml" ]; then
-            echo "  Updating virtual service for $service"
-            yq e '.spec.http[0].match[0].sourceLabels.root-version = env(PROD_ROOT_VERSION)' -i demo-gitops/$service/virtual-service.yaml
+          # Update virtual-service.yaml based on service type
+          if [ "$service" = "service-b" ] && [ -f "demo-gitops/$service/virtual-service.yaml" ]; then
+            echo "  Updating HTTP virtual service for $service"
+            yq e '.spec.http[0].match[0].sourceLabels.root-version = "'"$PROD_ROOT_VERSION"'"' -i demo-gitops/$service/virtual-service.yaml
+          elif [ "$service" = "service-c" ] && [ -f "demo-gitops/$service/virtual-service.yaml" ]; then
+            echo "  Updating TCP virtual service for $service"
+            yq e '.spec.tcp[0].match[0].sourceLabels.root-version = "'"$PROD_ROOT_VERSION"'"' -i demo-gitops/$service/virtual-service.yaml
+          elif [ -f "demo-gitops/$service/virtual-service.yaml" ]; then
+            echo "  Virtual service exists for $service but no specific update logic defined"
+          else
+            echo "  No virtual service found for $service (this is normal for some services)"
           fi
         done
     
@@ -99,9 +106,9 @@ jobs:
         echo "- demo-gitops/prod_version.yaml"
         echo "- demo-gitops/service-a/rollout.yaml"
         echo "- demo-gitops/service-b/rollout.yaml"
-        echo "- demo-gitops/service-b/virtual-service.yaml"
+        echo "- demo-gitops/service-b/virtual-service.yaml (HTTP routing)"
         echo "- demo-gitops/service-c/rollout.yaml"
-        echo "- demo-gitops/service-c/virtual-service.yaml"
+        echo "- demo-gitops/service-c/virtual-service.yaml (TCP routing)"
         echo ""
         echo "**Application Images:**"
         echo "- Service A: $SERVICE_A_IMAGE"
