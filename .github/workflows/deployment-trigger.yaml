@@ -3,7 +3,7 @@ name: Build and Deploy Services
 on:
   push:
     branches:
-      - master
+      - main
     paths:
       - 'service-a/**'
       - 'service-b/**'
