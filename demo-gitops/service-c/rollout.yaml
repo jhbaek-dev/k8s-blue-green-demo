@@ -14,11 +14,11 @@ spec:
     metadata:
       labels:
         app: service-c
-        root-version: v2.1.1
+        root-version: v2.1.2
     spec:
       containers:
         - name: service-c
-          image: ghcr.io/jhbaek-dev/k8s-blue-green-demo/service-c:qa-c2900de-20250823-033003
+          image: ghcr.io/jhbaek-dev/k8s-blue-green-demo/service-c:qa-860f9a2-20250823-053026
           imagePullPolicy: Always
           ports:
             - name: http

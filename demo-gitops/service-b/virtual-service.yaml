@@ -9,7 +9,7 @@ spec:
   http:
     - match:
         - sourceLabels:
-            root-version: "v2.1.1"
+            root-version: "v2.1.2"
       route:
         - destination:
             host: service-b-preview
