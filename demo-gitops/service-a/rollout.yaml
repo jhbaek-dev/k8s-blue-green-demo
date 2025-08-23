@@ -18,7 +18,7 @@ spec:
     spec:
       containers:
         - name: service-a
-          image: SERVICE_A_IMAGE
+          image: ghcr.io/jhbaek-dev/k8s-blue-green-demo/service-a:qa-0b236ff-20250823-044846
           imagePullPolicy: Always
           ports:
             - name: http
