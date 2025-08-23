@@ -1,0 +1,133 @@
+name: Deploy QA to Production
+
+on:
+  workflow_dispatch:
+    inputs:
+      confirm:
+        description: 'Type "deploy" to confirm production deployment'
+        required: true
+        default: ''
+
+jobs:
+  deploy-to-production:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Validate confirmation
+      if: ${{ github.event.inputs.confirm != 'deploy' }}
+      run: |
+        echo "❌ Deployment confirmation failed. Please type 'deploy' to proceed."
+        exit 1
+    
+    - name: Checkout repository
+      uses: actions/checkout@v4
+      with:
+        token: ${{ secrets.GITHUB_TOKEN }}
+        fetch-depth: 0
+    
+    - name: Setup yq
+      uses: mikefarah/yq@master
+    
+    - name: Read QA version and prepare production deployment
+      run: |
+        # Read root-version from qa_version.yaml and remove _qa suffix
+        QA_ROOT_VERSION=$(yq e '.root-version' demo-gitops/qa_version.yaml)
+        PROD_ROOT_VERSION=$(echo "$QA_ROOT_VERSION" | sed 's/_qa$//')
+        
+        echo "QA Root Version: $QA_ROOT_VERSION"
+        echo "Production Root Version: $PROD_ROOT_VERSION"
+        
+        # Update prod_version.yaml with new root-version
+        yq e ".root-version = \"$PROD_ROOT_VERSION\"" -i demo-gitops/prod_version.yaml
+        
+        # Read application images from qa_version.yaml and update prod_version.yaml
+        SERVICE_A_IMAGE=$(yq e '.applications.service-a.image' demo-gitops/qa_version.yaml)
+        SERVICE_B_IMAGE=$(yq e '.applications.service-b.image' demo-gitops/qa_version.yaml)
+        SERVICE_C_IMAGE=$(yq e '.applications.service-c.image' demo-gitops/qa_version.yaml)
+        
+        echo "Service A Image: $SERVICE_A_IMAGE"
+        echo "Service B Image: $SERVICE_B_IMAGE"
+        echo "Service C Image: $SERVICE_C_IMAGE"
+        
+        # Update prod_version.yaml with application images
+        yq e ".applications.service-a.image = \"$SERVICE_A_IMAGE\"" -i demo-gitops/prod_version.yaml
+        yq e ".applications.service-b.image = \"$SERVICE_B_IMAGE\"" -i demo-gitops/prod_version.yaml
+        yq e ".applications.service-c.image = \"$SERVICE_C_IMAGE\"" -i demo-gitops/prod_version.yaml
+        
+        # Store variables for next steps
+        echo "PROD_ROOT_VERSION=$PROD_ROOT_VERSION" >> $GITHUB_ENV
+        echo "SERVICE_A_IMAGE=$SERVICE_A_IMAGE" >> $GITHUB_ENV
+        echo "SERVICE_B_IMAGE=$SERVICE_B_IMAGE" >> $GITHUB_ENV
+        echo "SERVICE_C_IMAGE=$SERVICE_C_IMAGE" >> $GITHUB_ENV
+    
+    - name: Update all services rollouts and virtual services
+      run: |
+        # Loop through all services
+        for service in service-a service-b service-c; do
+          echo "Updating $service..."
+          
+          # Get service image from environment variable
+          service_var=$(echo "$service" | tr '-' '_' | tr '[:lower:]' '[:upper:]')_IMAGE
+          service_image=$(eval echo \$service_var)
+          
+          echo "  Image: $service_image"
+          
+          # Update container image in rollout
+          yq e '.spec.template.spec.containers[0].image = "'"$service_image"'"' -i demo-gitops/$service/rollout.yaml
+          
+          # Update pod label root-version in rollout
+          yq e '.spec.template.metadata.labels.root-version = env(PROD_ROOT_VERSION)' -i demo-gitops/$service/rollout.yaml
+          
+          # Check if virtual-service.yaml exists and update it
+          if [ -f "demo-gitops/$service/virtual-service.yaml" ]; then
+            echo "  Updating virtual service for $service"
+            yq e '.spec.http[0].match[0].sourceLabels.root-version = env(PROD_ROOT_VERSION)' -i demo-gitops/$service/virtual-service.yaml
+          fi
+        done
+    
+    - name: Show changes summary
+      run: |
+        echo "## 🚀 Production Deployment Summary"
+        echo "**Root Version:** $PROD_ROOT_VERSION"
+        echo ""
+        echo "**Updated Files:**"
+        echo "- demo-gitops/prod_version.yaml"
+        echo "- demo-gitops/service-a/rollout.yaml"
+        echo "- demo-gitops/service-b/rollout.yaml"
+        echo "- demo-gitops/service-b/virtual-service.yaml"
+        echo "- demo-gitops/service-c/rollout.yaml"
+        echo "- demo-gitops/service-c/virtual-service.yaml"
+        echo ""
+        echo "**Application Images:**"
+        echo "- Service A: $SERVICE_A_IMAGE"
+        echo "- Service B: $SERVICE_B_IMAGE"
+        echo "- Service C: $SERVICE_C_IMAGE"
+    
+    - name: Commit and push changes
+      run: |
+        git config --local user.email "action@github.com"
+        git config --local user.name "GitHub Action"
+        git add demo-gitops/
+        git commit -m "🚀 Deploy to production: $PROD_ROOT_VERSION
+
+        - Updated prod_version.yaml with root-version: $PROD_ROOT_VERSION
+        - Updated all service rollouts with new images and labels
+        - Updated virtual services with new root-version labels
+        
+        Images deployed:
+        - service-a: $SERVICE_A_IMAGE
+        - service-b: $SERVICE_B_IMAGE  
+        - service-c: $SERVICE_C_IMAGE"
+        git push
+    
+    - name: Create deployment summary
+      run: |
+        echo "✅ Production deployment completed successfully!"
+        echo "📋 Summary:"
+        echo "  • Root version: $PROD_ROOT_VERSION"
+        echo "  • All services updated with QA-validated images"
+        echo "  • GitOps manifests committed and pushed"
+        echo ""
+        echo "🔗 Next steps:"
+        echo "  • Monitor ArgoCD for automatic sync"
+        echo "  • Verify rollout status in production cluster"
