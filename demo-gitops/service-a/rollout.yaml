@@ -11,6 +11,8 @@ spec:
     matchLabels:
       app: service-a
   template:
+    annotations:
+      ambient.istio.io/dns-capture: "false"
     metadata:
       labels:
         app: service-a
