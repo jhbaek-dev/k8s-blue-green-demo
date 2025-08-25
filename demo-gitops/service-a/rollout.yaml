@@ -30,7 +30,7 @@ spec:
             - name: SERVICE_B_HOST
               value: service-b
             - name: SERVICE_C_HOST
-              value: service-c
+              value: service-c.default.svc.cluster.local
             - name: ROOT_VERSION
               valueFrom:
                 fieldRef:
