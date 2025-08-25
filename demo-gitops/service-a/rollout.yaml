@@ -11,12 +11,12 @@ spec:
     matchLabels:
       app: service-a
   template:
-    annotations:
-      ambient.istio.io/dns-capture: "false"
     metadata:
       labels:
         app: service-a
         root-version: v2.1.2
+      annotations:
+        ambient.istio.io/dns-capture: "false"
     spec:
       containers:
         - name: service-a
