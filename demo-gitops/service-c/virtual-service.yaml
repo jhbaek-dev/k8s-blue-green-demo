@@ -24,3 +24,13 @@ spec:
     - match:
         - sourceLabels:
             root-version: v2.1.4
+      route:
+        - destination:
+            host: service-c-preview
+            port:
+              number: 3000
+    - route:
+        - destination:
+            host: service-c
+            port:
+              number: 3000
