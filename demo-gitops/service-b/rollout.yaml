@@ -15,6 +15,8 @@ spec:
       labels:
         app: service-b
         root-version: v2.1.4
+      annotations:
+        ambient.istio.io/dns-capture: "false"
     spec:
       containers:
         - name: service-b
