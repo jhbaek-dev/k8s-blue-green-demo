@@ -9,7 +9,7 @@ import (
 	"os"
 )
 
-const VERSION = "v1.0.2"
+const VERSION = "v1.0.3"
 
 func main() {
 	log.Printf("[DEBUG] Service-A 시작 중... 버전: %s", VERSION)
@@ -46,7 +46,18 @@ func main() {
 			conn, err := net.Dial("tcp", serviceCHost+":3000")
 			if err == nil {
 				log.Printf("[DEBUG] Service-C TCP 연결 성공, 버전 요청 전송")
-				conn.Write([]byte("version"))
+				log.Printf("[DEBUG] TCP 연결 정보 - Local: %s, Remote: %s", conn.LocalAddr(), conn.RemoteAddr())
+				log.Printf("[DEBUG] 연결 타입: %T", conn)
+				
+				log.Printf("[DEBUG] Service-C에 'version' 메시지 전송 시도")
+				_, writeErr := conn.Write([]byte("version"))
+				if writeErr != nil {
+					log.Printf("[DEBUG] Service-C 메시지 전송 실패: %v", writeErr)
+				} else {
+					log.Printf("[DEBUG] Service-C 메시지 전송 완료")
+				}
+				
+				log.Printf("[DEBUG] Service-C 응답 읽기 시도...")
 				buf := make([]byte, 1024)
 				n, _ := conn.Read(buf)
 				serviceCVersion = string(buf[:n])
