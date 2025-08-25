@@ -20,3 +20,7 @@ spec:
             host: service-c
             port:
               number: 3000
+  tcp:
+    - match:
+        - sourceLabels:
+            root-version: v2.1.4

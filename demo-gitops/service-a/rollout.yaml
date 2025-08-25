@@ -14,13 +14,13 @@ spec:
     metadata:
       labels:
         app: service-a
-        root-version: v2.1.2
+        root-version: v2.1.4
       annotations:
         ambient.istio.io/dns-capture: "false"
     spec:
       containers:
         - name: service-a
-          image: ghcr.io/jhbaek-dev/k8s-blue-green-demo/service-a:qa-0b236ff-20250823-044846
+          image: ghcr.io/jhbaek-dev/k8s-blue-green-demo/service-a:qa-c263b22-20250824-120743
           imagePullPolicy: Always
           ports:
             - name: http
