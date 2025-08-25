@@ -22,14 +22,17 @@ spec:
               number: 3000
   tcp:
     - match:
-        - sourceLabels:
-            root-version: v2.1.4
+        - port: 3000  # Added required port field
+          sourceLabels:
+            root-version: "v2.1.4"
       route:
         - destination:
             host: service-c-preview
             port:
               number: 3000
-    - route:
+    - match:
+        - port: 3000  # Added required port field for default route
+      route:
         - destination:
             host: service-c
             port:
