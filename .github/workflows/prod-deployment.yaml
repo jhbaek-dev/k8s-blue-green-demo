@@ -93,7 +93,8 @@ jobs:
             echo "  Updating HTTP virtual service for $service"
             yq e '.spec.http[0].match[0].sourceLabels.root-version = "'"$PROD_ROOT_VERSION"'"' -i demo-gitops/$service/virtual-service.yaml
           elif [ "$service" = "service-c" ] && [ -f "demo-gitops/$service/virtual-service.yaml" ]; then
-            echo "  Updating TCP virtual service for $service"
+            echo "  Updating HTTP and TCP virtual service for $service"
+            yq e '.spec.http[0].match[0].sourceLabels.root-version = "'"$PROD_ROOT_VERSION"'"' -i demo-gitops/$service/virtual-service.yaml
             yq e '.spec.tcp[0].match[0].sourceLabels.root-version = "'"$PROD_ROOT_VERSION"'"' -i demo-gitops/$service/virtual-service.yaml
           elif [ -f "demo-gitops/$service/virtual-service.yaml" ]; then
             echo "  Virtual service exists for $service but no specific update logic defined"

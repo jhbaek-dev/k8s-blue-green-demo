@@ -5,7 +5,7 @@ import (
 	"net"
 )
 
-const VERSION = "v1.1.3"
+const VERSION = "v1.1.4"
 
 func main() {
 	log.Printf("[DEBUG] Service-C 시작 중... 버전: %s", VERSION)
