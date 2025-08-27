@@ -7,8 +7,7 @@ metadata:
 spec:
   ports:
   - port: 3000
-    targetPort: tcp
     protocol: TCP
-    name: tcp
+    name: traffic
   selector:
     app: service-c
