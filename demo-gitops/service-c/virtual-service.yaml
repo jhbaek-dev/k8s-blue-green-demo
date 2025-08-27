@@ -1,7 +1,7 @@
 apiVersion: networking.istio.io/v1beta1
 kind: VirtualService
 metadata:
-  name: service-c-routing
+  name: service-c-vc
   namespace: default
 spec:
   hosts:
@@ -9,7 +9,7 @@ spec:
   http:
     - match:
         - sourceLabels:
-            root-version: "v2.1.2"
+            root-version: "v2.1.5"
       route:
         - destination:
             host: service-c-preview
@@ -22,18 +22,16 @@ spec:
               number: 3000
   tcp:
     - match:
-        - port: 3000 # Added required port field
-          sourceLabels:
+        - sourceLabels:
             root-version: "v2.1.5"
       route:
         - destination:
             host: service-c-preview
             port:
               number: 3000
-    - match:
-        - port: 3000 # Added required port field for default route
-      route:
+    - route:
         - destination:
             host: service-c
             port:
               number: 3000
+

@@ -15,15 +15,13 @@ spec:
       labels:
         app: service-c
         root-version: v2.1.5
-      annotations:
-        ambient.istio.io/dns-capture: "false"
     spec:
       containers:
         - name: service-c
           image: ghcr.io/jhbaek-dev/k8s-blue-green-demo/service-c:qa-cd678af-20250824-125237
           imagePullPolicy: Always
           ports:
-            - name: http
+            - name: traffic
               containerPort: 3000
               protocol: TCP
   strategy:

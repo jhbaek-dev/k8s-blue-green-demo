@@ -1,7 +1,7 @@
 apiVersion: networking.istio.io/v1beta1
 kind: VirtualService
 metadata:
-  name: service-b-routing
+  name: service-b-vc
   namespace: default
 spec:
   hosts:

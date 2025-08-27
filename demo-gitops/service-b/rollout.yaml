@@ -15,15 +15,13 @@ spec:
       labels:
         app: service-b
         root-version: v2.1.5
-      annotations:
-        ambient.istio.io/dns-capture: "false"
     spec:
       containers:
         - name: service-b
           image: ghcr.io/jhbaek-dev/k8s-blue-green-demo/service-b:qa-c2900de-20250823-033003
           imagePullPolicy: Always
           ports:
-            - name: http
+            - name: traffic
               containerPort: 3000
               protocol: TCP
   strategy:

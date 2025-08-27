@@ -15,22 +15,20 @@ spec:
       labels:
         app: service-a
         root-version: v2.1.5
-      annotations:
-        ambient.istio.io/dns-capture: "false"
     spec:
       containers:
         - name: service-a
           image: ghcr.io/jhbaek-dev/k8s-blue-green-demo/service-a:qa-d6c406b-20250825-095053
           imagePullPolicy: Always
           ports:
-            - name: http
+            - name: traffic
               containerPort: 3000
               protocol: TCP
           env:
             - name: SERVICE_B_HOST
               value: service-b
             - name: SERVICE_C_HOST
-              value: service-c.default.svc.cluster.local
+              value: service-c
             - name: ROOT_VERSION
               valueFrom:
                 fieldRef:
