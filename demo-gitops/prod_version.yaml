@@ -1,8 +1,8 @@
-root-version: v2.1.5
+root-version: v2.2.0
 applications:
   service-a:
     image: ghcr.io/jhbaek-dev/k8s-blue-green-demo/service-a:qa-d6c406b-20250825-095053
   service-b:
-    image: ghcr.io/jhbaek-dev/k8s-blue-green-demo/service-b:qa-c2900de-20250823-033003
+    image: ghcr.io/jhbaek-dev/k8s-blue-green-demo/service-b:qa-6751a9c-20250827-064900
   service-c:
-    image: ghcr.io/jhbaek-dev/k8s-blue-green-demo/service-c:qa-cd678af-20250824-125237
+    image: ghcr.io/jhbaek-dev/k8s-blue-green-demo/service-c:qa-6751a9c-20250827-064900

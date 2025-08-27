@@ -14,11 +14,11 @@ spec:
     metadata:
       labels:
         app: service-b
-        root-version: v2.1.5
+        root-version: v2.2.0
     spec:
       containers:
         - name: service-b
-          image: ghcr.io/jhbaek-dev/k8s-blue-green-demo/service-b:qa-c2900de-20250823-033003
+          image: ghcr.io/jhbaek-dev/k8s-blue-green-demo/service-b:qa-6751a9c-20250827-064900
           imagePullPolicy: Always
           ports:
             - name: traffic
